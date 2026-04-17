@@ -1,0 +1,155 @@
+DataASsure
+import { useState } from "react";
+
+const BACKEND_BASE =
+  "https://8000-cs-799702296947-default.cs-asia-southeast1-cloudshell.dev";
+
+export default function DataAssurance() {
+  const [step, setStep] = useState(1);
+
+  
+ return (
+    <div style={container}>
+      <h2>Data Assurance</h2>
+
+      {step === 1 && <Step1 onNext={() => setStep(2)} />}
+      {step === 2 && <Step2 onBack={() => setStep(1)} />}
+    </div>
+  );
+
+}
+
+/* ================= STEP 1 ================= */
+function Step1({ onNext }) {
+  const [sourceProject, setSourceProject] = useState("");
+  const [sourceDataset, setSourceDataset] = useState("");
+  const [sourceTable, setSourceTable] = useState("");
+
+  const [targetProject, setTargetProject] = useState("");
+  const [targetDataset, setTargetDataset] = useState("");
+  const [targetTables, setTargetTables] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+  const handleMetadata = async () => {
+    const payload = {
+      source: {
+        project: sourceProject,
+        dataset: sourceDataset,
+        table: sourceTable,
+      },
+      target: {
+        project: targetProject,
+        dataset: targetDataset,
+        tables: targetTables
+          .split(",")
+          .map(t => t.trim())
+          .filter(Boolean),
+      },
+    };
+
+    console.log("📤 Sending metadata payload:", payload);
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${BACKEND_BASE}/collect-metadata/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Backend error");
+      }
+
+      const data = await res.json();
+      console.log("✅ Metadata response:", data);
+
+      onNext(); // ✅ move to Step‑2
+    } catch (err) {
+      console.error("❌ Metadata request failed:", err);
+      alert("Metadata collection failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={card}>
+      <h3>Step 1: Metadata Collection</h3>
+
+      <h4>Source</h4>
+      <input style={input} placeholder="Project" onChange={e => setSourceProject(e.target.value)} />
+      <input style={input} placeholder="Dataset" onChange={e => setSourceDataset(e.target.value)} />
+      <input style={input} placeholder="Table" onChange={e => setSourceTable(e.target.value)} />
+
+      <h4>Target</h4>
+      <input style={input} placeholder="Project" onChange={e => setTargetProject(e.target.value)} />
+      <input style={input} placeholder="Dataset" onChange={e => setTargetDataset(e.target.value)} />
+      <input
+        style={input}
+        placeholder="Tables (comma separated)"
+        onChange={e => setTargetTables(e.target.value)}
+      />
+
+      <button style={btn} onClick={handleMetadata} disabled={loading}>
+        {loading ? "Processing..." : "Verify & Collect Metadata"}
+      </button>
+    </div>
+  );
+}
+
+function Step2({ onBack }) {
+  return (
+    <div style={card}>
+      <h3>Step 2: Metadata Summary</h3>
+
+      <p style={{ color: "#22c55e", fontWeight: "bold" }}>
+        ✅ Metadata collected successfully
+      </p>
+
+      <p>
+        You can now proceed with:
+      </p>
+
+      <ul>
+        <li>Schema comparison</li>
+        <li>AI column matching</li>
+        <li>Reconciliation checks</li>
+      </ul>
+
+      <button style={secondaryBtn} onClick={onBack}>
+        ⬅ Back to Step 1
+      </button>
+    </div>
+  );
+}
+/* ================= STYLES ================= */
+
+const container = { maxWidth: 900, margin: "0 auto", color: "white" };
+const card = { background: "#111827", padding: 20, borderRadius: 8 };
+
+const input = {
+  width: "100%",
+  padding: 10,
+  marginBottom: 10,
+  borderRadius: 5,
+  border: "none",
+};
+
+const btn = {
+  padding: "10px 16px",
+  background: "#22c55e",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const secondaryBtn = {
+  ...btn,
+  background: "#334155",
+  marginTop: 20,
+};
